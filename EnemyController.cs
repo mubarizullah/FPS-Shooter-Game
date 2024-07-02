@@ -1,8 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Video;
+using UnityEngine.UI;
 
 public class EnemyController : MonoBehaviour
 {
@@ -16,7 +20,7 @@ public class EnemyController : MonoBehaviour
    /////////////////////////
    [Header("GO Refrence")]
    [Tooltip("Add GameObject which enemy wil chase.")]
-   public Transform player;
+   Transform player;
    [Tooltip("Pistol one transform from where muzzle flash will be given out.")]
    public Transform rightFlashPoint;
    [Tooltip("Pistol one transform from where muzzle flash will be given out.")]
@@ -24,16 +28,17 @@ public class EnemyController : MonoBehaviour
    [Tooltip("Muzzle flash of ContractKiller Pistol")]
    public GameObject muzzleFlashPistol;
    [Header("Others")]
-   public AudioManager audioManager;
+   AudioManager audioManager;
    public LayerMask playerMask;
 
 
    public CapsuleCollider capCollider;
    public float shootingDuration = 3f;
    public float damageToPlayer = 20;
-   public Player playerScript;
+   Player playerScript;
    
    
+   float time = 0;   
 
    void Start()
    {
@@ -43,8 +48,8 @@ public class EnemyController : MonoBehaviour
     enemyAnimator.SetBool("Firing",false);
     capCollider = GetComponent<CapsuleCollider>();
     playerScript = GameObject.FindWithTag("Player").GetComponent<Player>();
-    
 
+    
 
    }
 
@@ -71,20 +76,39 @@ public class EnemyController : MonoBehaviour
     enemyNavAgent.SetDestination(player.position);
    }
 
-   IEnumerator EnemyInFrontOfPlayer()       //Starts Shooting
-   {    
-    transform.LookAt(player.position);
-    enemyNavAgent.isStopped = true;
-    enemyAnimator.SetBool("IsWalking",false);
-    while (Physics.Raycast(transform.position,transform.forward,10f,playerMask))
+   IEnumerator EnemyInFrontOfPlayer()
+{
+    // Ensure player detection and prevent null reference errors
+    if (player == null)
     {
-       enemyAnimator.SetBool("Firing",true);
-       yield return new WaitForSecondsRealtime(shootingDuration);
-       enemyAnimator.SetBool("Firing",false);
-       yield return new WaitForSecondsRealtime(shootingDuration);
+        Debug.LogError("EnemyInFrontOfPlayer: Player reference not set!");
+        yield break;
     }
-    
+
+    // Rotate towards player
+    transform.LookAt(player.position);
+
+    // Stop movement and adjust animator (optional)
+    enemyNavAgent.isStopped = true;
+    enemyAnimator.SetBool("IsWalking", false);
+
+    while (Physics.Raycast(transform.position, transform.forward, 10f, playerMask))
+    {
+         time = 0f;
+        enemyAnimator.SetBool("Firing", true);
+
+        
+        while (time < 3f)
+        {
+            time += Time.deltaTime;
+            yield return null; 
+        }
+
+        enemyAnimator.SetBool("Firing", false);
+        yield return new WaitForSeconds(3f); 
+        break; 
     }
+}   
     
      
 
@@ -119,6 +143,9 @@ public class EnemyController : MonoBehaviour
      enemyAnimator.SetBool("Damage",false);
    }
 
+   public delegate void EnemyDieDelegate();
+   public static event EnemyDieDelegate OnEnemyDieEvent;
+
    public void EnemyDied()
    {
     // dying logic
@@ -131,12 +158,25 @@ public class EnemyController : MonoBehaviour
 
    public void PlayerHealthDeduction()
    {
+   Debug.Log("method working");
    playerScript?.HealthDuduction(damageToPlayer);
+
+    ChangingBloodColor(255);
+    
    }
 
 
-   public delegate void EnemyDieDelegate();
-   public static event EnemyDieDelegate OnEnemyDieEvent;
+   public void BloodVfxDisable()
+   {
+    
+    ChangingBloodColor(0);
+   }
+
+   void ChangingBloodColor(float alpha)
+   {
+    UnityEngine.UI.Image bloodimage = GameObject.FindWithTag("BloodUI").GetComponent<UnityEngine.UI.Image>();
+    bloodimage.color = new Color(bloodimage.color.r,bloodimage.color.g,bloodimage.color.b,alpha);
+   }
    
    
 

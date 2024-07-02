@@ -13,6 +13,7 @@ public class UiControls : MonoBehaviour
    public GameObject MissionFailPanel;
    public Slider healthSlider;
    public GameObject missionCompleted;
+   public GameObject missionFailUIs;
    Player player;
   
 
@@ -44,12 +45,14 @@ public class UiControls : MonoBehaviour
 
     public void Restart()
     {
-      SceneManager.LoadScene("Level 1",LoadSceneMode.Single);
+      SceneManager.LoadScene("Level 1");
+      Time.timeScale = 1;
     }
 
     public void Home()
     {
       MissionExit.SetActive(true);
+      missionFailUIs.SetActive(false);
     }
 
     public void MissionExitYes()
@@ -60,6 +63,7 @@ public class UiControls : MonoBehaviour
     public void MissionExitNo()
     {
       MissionExit.SetActive(false);
+      missionFailUIs.SetActive(true);
     } 
     
     public void MissionFail()
